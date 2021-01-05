@@ -214,6 +214,40 @@ av1-rt)
   $($TIMERDEC $AOMDEC --codec=av1 $AOMDEC_OPTS -o $BASENAME.y4m $BASENAME.ivf)
   SIZE=$(stat -c %s $BASENAME.ivf)
   ;;
+av2 | av2-ai | av2-ra | av2-ld | av2-as)
+  case $CODEC in
+    av2-ai)
+      CTC_PROFILE_OPTS="--cpu-used=0 --passes=1 --end-usage=q --cq-level=x --kf-min-dist=0 --kf-max-dist=0 --use-fixed-qp-offsets=1 --limit=30 --deltaq-mode=0 --enable-tpl-model=0 --enable-keyframe-filtering=0 --obu"
+      ;;
+    av2-ra)
+      CTC_PROFILE_OPTS="--cpu-used=0 --passes=1 --lag-in-frames=19 --auto-alt-ref=1 --min-gf-interval=16 --max-gf-interval=16 --gf-min-pyr-height=4 --gf-max-pyr-height=4 --limit=130 --kf-min-dist=65 --kf-max-dist=65 --use-fixed-qp-offsets=1 --deltaq-mode=0 --enable-tpl-model=0 --end-usage=q --enable-keyframe-filtering=0 --obu"
+      ;;
+    av2-ld)
+      CTC_PROFILE_OPTS="--cpu-used=0 --passes=1 --lag-in-frames=0 --min-gf-interval=16 --max-gf-interval=16 --gf-min-pyr-height=4 --gf-max-pyr-height=4 --limit=130 --kf-min-dist=9999 --kf-max-dist=9999  --use-fixed-qp-offsets=1 --deltaq-mode=0 --enable-tpl-model=0 --end-usage=q --subgop-config-str=ld --enable-keyframe-filtering=0 --obu"
+      ;;
+    av2-as)
+      CTC_PROFILE_OPTS="--cpu-used=0 --passes=1 --lag-in-frames=19 --auto-alt-ref=1 --min-gf-interval=16 --max-gf-interval=16 --gf-min-pyr-height=4 --gf-max-pyr-height=4 --limit=130 --kf-min-dist=65 --kf-max-dist=65 --use-fixed-qp-offsets=1 --deltaq-mode=0 --enable-tpl-model=0 --end-usage=q --enable-keyframe-filtering=0 --obu"
+      ;;
+    av2)
+      # generic, not currently used
+      CTC_PROFILE_OPTS=""
+      ;;
+  esac
+  case $(basename $FILE) in
+    BoxingPractice_3840x2160_5994fps_10bit_420.y4m | Crosswalk_3840x2160_5994fps_10bit_420.y4m | FoodMarket2_3840x2160_5994fps_10bit_420.y4m | Neon1224_3840x2160_2997fps.y4m | NocturneDance_3840x2160p_10bit_60fps.y4m | PierSeaSide_3840x2160_2997fps_10bit_420.y4m | Tango_3840x2160_5994fps_10bit_420.y4m | TimeLapse_3840x2160_5994fps_10bit_420.y4m)
+      CTC_THREADING_OPTS="--tile-columns=1 --threads=2 --row-mt=0"
+      ;;
+    *)
+      CTC_THREADING_OPTS="--tile-columns=0 --threads=1"
+      ;;
+  esac
+  $($TIMER $AOMENC --codec=av1 --test-decode=fatal $CTC_PROFILE_OPTS $CTC_THREADING_OPTS -o $BASENAME.obu $EXTRA_OPTIONS $FILE  > "$BASENAME-stdout.txt")
+  if $AOMDEC --help 2>&1 | grep output-bit-depth > /dev/null; then
+    AOMDEC_OPTS+=" --output-bit-depth=$DEPTH"
+  fi
+  $($TIMERDEC $AOMDEC --codec=$CODEC $AOMDEC_OPTS -o $BASENAME.y4m $BASENAME.obu)
+  SIZE=$(stat -c %s $BASENAME.obu)
+  ;;
 thor)
   $($TIMER $THORENC -qp $x -cf "$THORDIR/config_HDB16_high_efficiency.txt" -if $FILE -of $BASENAME.thor $EXTRA_OPTIONS > $BASENAME-enc.out)
   SIZE=$(stat -c %s $BASENAME.thor)
